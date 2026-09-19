@@ -1,9 +1,10 @@
-const CACHE_NAME = 'steve-game-v1';
+const CACHE_NAME = 'steve-game-v2';
 const ASSETS = [
   './',
   './index.html',
   './benji.html',
   './manifest.json',
+  './icon.png',
   './icon.svg'
 ];
 

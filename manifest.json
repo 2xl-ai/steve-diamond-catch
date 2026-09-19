@@ -1,7 +1,7 @@
 {
   "name": "Steve's Diamond Catch",
   "short_name": "Diamond Catch",
-  "description": "Retro pixel arcade game - Steve's Diamond Catch with customizable speeds and mobile touch controls",
+  "description": "Retro pixel arcade game - Steve's Diamond Catch with customizable speeds, parental lock, and mobile touch controls",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#181818",
@@ -9,10 +9,16 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icon.svg",
-      "sizes": "192x192 512x512",
-      "type": "image/svg+xml",
+      "src": "icon.png",
+      "sizes": "1024x1024 512x512 192x192",
+      "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }
