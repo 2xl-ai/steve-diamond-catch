@@ -1,0 +1,2247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1e1e1e">
+  <meta name="description" content="Steve's Diamond Catch - Retro Arcade Game with Salted SHA-256 Parental Lock, customizable speed, timer, chiptune music, sound effects, and mobile controls">
+  <link rel="manifest" href="manifest.json">
+  <title>Steve's Diamond Catch</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: #181818;
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #fff;
+      padding: 8px;
+      overflow-x: hidden;
+      touch-action: manipulation;
+    }
+
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    h1 {
+      font-size: clamp(1.1rem, 4vw, 1.6rem);
+      color: #55ff55;
+      text-shadow: 2px 2px #000;
+      letter-spacing: 1px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    /* Retro Minecraft-style buttons */
+    .retro-btn {
+      font-family: inherit;
+      font-weight: bold;
+      font-size: 12px;
+      color: #ffffff;
+      background: #4a4a4a;
+      border: 2px solid #222;
+      box-shadow: inset 2px 2px 0 #777, inset -2px -2px 0 #2b2b2b;
+      padding: 5px 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      user-select: none;
+      transition: background 0.1s, transform 0.05s;
+    }
+
+    .retro-btn:active {
+      transform: translateY(1px);
+      box-shadow: inset 2px 2px 0 #2b2b2b, inset -2px -2px 0 #777;
+    }
+
+    .retro-btn-accent {
+      background: #2e7d32;
+      box-shadow: inset 2px 2px 0 #4caf50, inset -2px -2px 0 #1b5e20;
+    }
+
+    .retro-btn-accent:active {
+      box-shadow: inset 2px 2px 0 #1b5e20, inset -2px -2px 0 #4caf50;
+    }
+
+    .retro-btn-cyan {
+      background: #00838f;
+      box-shadow: inset 2px 2px 0 #00acc1, inset -2px -2px 0 #006064;
+    }
+
+    .retro-btn-orange {
+      background: #b26a00;
+      box-shadow: inset 2px 2px 0 #ff9800, inset -2px -2px 0 #8c5000;
+    }
+
+    .retro-btn-red {
+      background: #b71c1c;
+      box-shadow: inset 2px 2px 0 #e53935, inset -2px -2px 0 #7f0000;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      aspect-ratio: 600 / 500;
+      border: 4px solid #3c3c3c;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+      background: #70b8ff;
+      touch-action: none;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 6px;
+      padding: 0 4px;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: #4dedf4;
+    }
+
+    .status-badge-locked {
+      color: #ff4444 !important;
+      border-color: #ff4444 !important;
+      font-weight: bold;
+      animation: pulse 1s infinite;
+    }
+
+    .status-badge-warn {
+      color: #ff9800 !important;
+      border-color: #ff9800 !important;
+    }
+
+    .status-badge-danger {
+      color: #ff4444 !important;
+      border-color: #ff4444 !important;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Parent Lock Active Banner (Replaces controls when locked) */
+    #lock-action-bar {
+      display: none;
+      width: 100%;
+      max-width: 600px;
+      margin-top: 10px;
+      background: #2b1111;
+      border: 2px solid #b71c1c;
+      padding: 12px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    #lock-action-bar.visible {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Mobile On-Screen Touch Controls */
+    #touch-controls {
+      display: flex;
+      width: 100%;
+      max-width: 600px;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 8px;
+      user-select: none;
+    }
+
+    .touch-btn {
+      flex: 1;
+      height: 56px;
+      font-size: 22px;
+      background: #2d2d2d;
+      border: 3px solid #444;
+      border-radius: 8px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      touch-action: none;
+      box-shadow: inset 2px 2px 0 #555, inset -2px -2px 0 #1a1a1a, 0 4px 6px rgba(0,0,0,0.4);
+      transition: background 0.1s;
+    }
+
+    .touch-btn:active, .touch-btn.active {
+      background: #00a3a3;
+      box-shadow: inset 2px 2px 0 #005555, inset -2px -2px 0 #00ffff;
+      transform: scale(0.98);
+    }
+
+    .touch-hint {
+      font-size: 11px;
+      color: #888;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    /* Dialogs Base Styling */
+    dialog {
+      margin: auto;
+      border-radius: 0px;
+      outline: none;
+    }
+
+    dialog::backdrop {
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(5px);
+    }
+
+    /* Modern Native Config Dialog */
+    dialog#config-dialog {
+      border: 4px solid #555;
+      background: #242424;
+      color: #ffffff;
+      padding: 18px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), inset 2px 2px 0 #777, inset -2px -2px 0 #111;
+      width: 92%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .dialog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #444;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+
+    .dialog-header h2 {
+      font-size: 1.15rem;
+      color: #55ff55;
+      text-shadow: 1px 1px #000;
+    }
+
+    .config-section {
+      margin-bottom: 12px;
+      background: #2c2c2c;
+      padding: 10px;
+      border: 1px solid #3d3d3d;
+    }
+
+    .section-title {
+      font-size: 12px;
+      color: #55ff55;
+      margin-bottom: 8px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .config-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #ddd;
+      margin-bottom: 6px;
+    }
+
+    .config-val {
+      color: #4dedf4;
+      font-weight: bold;
+    }
+
+    /* Presets row */
+    .presets-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .preset-btn {
+      font-family: inherit;
+      font-size: 11px;
+      padding: 6px 2px;
+      background: #383838;
+      border: 2px solid #222;
+      color: #ccc;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: inset 1px 1px 0 #555, inset -1px -1px 0 #1a1a1a;
+    }
+
+    .preset-btn.active {
+      background: #00838f;
+      color: #fff;
+      border-color: #4dedf4;
+      font-weight: bold;
+      box-shadow: inset 2px 2px 0 #00acc1, inset -2px -2px 0 #004d40;
+    }
+
+    /* Range inputs */
+    input[type="range"] {
+      width: 100%;
+      height: 8px;
+      background: #333;
+      border: 1px solid #555;
+      outline: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      margin: 4px 0;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background: #55ff55;
+      border: 2px solid #1b5e20;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: #55ff55;
+      border: 2px solid #1b5e20;
+      cursor: pointer;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #ccc;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    .checkbox-row input {
+      accent-color: #55ff55;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .dialog-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 2px solid #444;
+    }
+
+    /* Parent PIN Verification Dialog */
+    dialog#pin-dialog {
+      border: 4px solid #b71c1c;
+      background: #1f1414;
+      color: #ffffff;
+      padding: 20px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9), inset 2px 2px 0 #e53935, inset -2px -2px 0 #4a0000;
+      width: 92%;
+      max-width: 360px;
+      text-align: center;
+    }
+
+    .pin-title {
+      font-size: 1.15rem;
+      color: #ff5555;
+      text-shadow: 1px 1px #000;
+      margin-bottom: 6px;
+    }
+
+    .pin-subtitle {
+      font-size: 12px;
+      color: #ccc;
+      margin-bottom: 12px;
+    }
+
+    .pin-dots {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin: 14px 0 10px;
+    }
+
+    .pin-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid #ff5555;
+      background: transparent;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+
+    .pin-dot.filled {
+      background: #ff5555;
+      box-shadow: 0 0 10px #ff4444;
+    }
+
+    .pin-error {
+      min-height: 20px;
+      font-size: 12px;
+      color: #ff5555;
+      font-weight: bold;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .keypad-btn {
+      height: 52px;
+      font-size: 20px;
+      font-family: inherit;
+      font-weight: bold;
+      background: #331f1f;
+      color: #fff;
+      border: 2px solid #5a2020;
+      box-shadow: inset 1px 1px 0 #7a3030, inset -1px -1px 0 #150a0a;
+      cursor: pointer;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .keypad-btn:active {
+      background: #b71c1c;
+    }
+
+    .keypad-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: #222 !important;
+    }
+
+    .keypad-btn-clear {
+      font-size: 14px;
+      color: #ff8888;
+    }
+
+    /* Parent Action Modal (after successful PIN) */
+    dialog#parent-action-dialog {
+      border: 4px solid #2e7d32;
+      background: #142416;
+      color: #ffffff;
+      padding: 22px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9), inset 2px 2px 0 #4caf50, inset -2px -2px 0 #0d1a0e;
+      width: 92%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .action-title {
+      font-size: 1.2rem;
+      color: #55ff55;
+      text-shadow: 1px 1px #000;
+      margin-bottom: 6px;
+    }
+
+    .action-buttons-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .action-choice-btn {
+      font-family: inherit;
+      font-weight: bold;
+      font-size: 14px;
+      padding: 12px;
+      cursor: pointer;
+      color: #fff;
+      background: #2d4530;
+      border: 2px solid #4caf50;
+      box-shadow: inset 2px 2px 0 #81c784, inset -2px -2px 0 #1b5e20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .action-choice-btn:active {
+      background: #1b5e20;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Bar with Controls -->
+  <div class="header-bar">
+    <h1>STEVE'S DIAMOND CATCH</h1>
+    <div class="top-actions">
+      <button id="sound-toggle-btn" class="retro-btn" title="Toggle Sound (M)">🔊 Sound: ON</button>
+      <button id="pause-btn" class="retro-btn" title="Pause Game (P)">⏸ Pause</button>
+      <button id="config-btn" class="retro-btn retro-btn-cyan" title="Configure Game Speed, Timer & Parental Lock">⚙ Config</button>
+    </div>
+  </div>
+
+  <!-- Game Canvas Container -->
+  <div id="game-container">
+    <canvas id="gameCanvas" width="600" height="500"></canvas>
+  </div>
+
+  <!-- Status Bar showing current speed, timer & sound -->
+  <div class="status-bar">
+    <span>Speed: <strong id="speed-display" class="status-badge">1.0x (NORMAL)</strong></span>
+    <span>Timer: <strong id="timer-display" class="status-badge">15:00</strong></span>
+    <span>Sound: <strong id="sound-status-display" class="status-badge">ON</strong></span>
+  </div>
+
+  <!-- Parent Lock Screen Action Bar (Appears when locked) -->
+  <div id="lock-action-bar">
+    <div style="font-size: 13px; color: #ff8888; font-weight: bold;">🔒 SCREEN TIME LOCKED BY PARENT</div>
+    <div style="font-size: 11px; color: #bbb;">Kids cannot play without a parent entering the 4-digit PIN.</div>
+    <button id="parent-unlock-btn" class="retro-btn retro-btn-accent" style="font-size: 13px; padding: 8px 16px; margin-top: 4px;">
+      🔑 Parent Unlock / Add Play Time
+    </button>
+  </div>
+
+  <!-- Touch Controls for Smartphones & Tablets -->
+  <div id="touch-controls">
+    <button id="left-touch-btn" class="touch-btn" aria-label="Move Left">◀ LEFT</button>
+    <button id="right-touch-btn" class="touch-btn" aria-label="Move Right">RIGHT ▶</button>
+  </div>
+  <p class="touch-hint" id="touch-hint-text">Tip: Tap buttons or drag finger horizontally across the screen to steer Steve!</p>
+
+  <!-- Speed, Timer & Audio Configuration Dialog -->
+  <dialog id="config-dialog">
+    <div class="dialog-header">
+      <h2>⚙ GAME SETTINGS</h2>
+      <button id="dialog-close-x" class="retro-btn" style="padding: 2px 8px;">✕</button>
+    </div>
+
+    <!-- Parental Lock Section -->
+    <div class="config-section" style="border-color: #ff4444;">
+      <div class="section-title" style="color: #ff5555;">🔒 Parental Lock & Security</div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="parent-lock-checkbox" checked>
+        <span><strong>Enable Parental Lock</strong> (PIN required to unlock time & edit settings)</span>
+      </label>
+      <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #ccc;">
+        <span>Parent PIN: <strong style="color: #4dedf4;">Protected (Salted SHA-256)</strong></span>
+        <button type="button" id="change-pin-btn" class="retro-btn" style="font-size: 11px;">🔑 Change PIN</button>
+      </div>
+    </div>
+
+    <!-- Session Timer Section -->
+    <div class="config-section">
+      <div class="section-title">⏱ Session Timer & Play Limit</div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="timer-enabled-checkbox" checked>
+        <span>Enable Play Time Limit (locks game when time is up)</span>
+      </label>
+
+      <div id="timer-options-container" style="margin-top: 10px;">
+        <div class="config-label">
+          <span>Session Limit Duration:</span>
+          <span id="timer-val" class="config-val">15 min</span>
+        </div>
+        <div class="presets-row" id="timer-presets-row" style="grid-template-columns: repeat(5, 1fr);">
+          <button type="button" class="preset-btn timer-preset-btn" data-minutes="5">5m</button>
+          <button type="button" class="preset-btn timer-preset-btn" data-minutes="10">10m</button>
+          <button type="button" class="preset-btn timer-preset-btn active" data-minutes="15">15m</button>
+          <button type="button" class="preset-btn timer-preset-btn" data-minutes="20">20m</button>
+          <button type="button" class="preset-btn timer-preset-btn" data-minutes="30">30m</button>
+        </div>
+        <input type="range" id="timer-slider" min="1" max="60" step="1" value="15">
+      </div>
+    </div>
+
+    <!-- Speed Section -->
+    <div class="config-section">
+      <div class="section-title">⚡ Speed & Difficulty</div>
+      
+      <div class="config-label">
+        <span>Difficulty Preset:</span>
+        <span id="preset-name-display" class="config-val">Normal</span>
+      </div>
+      <div class="presets-row">
+        <button type="button" class="preset-btn speed-preset-btn" data-preset="slow">Slow</button>
+        <button type="button" class="preset-btn speed-preset-btn active" data-preset="normal">Normal</button>
+        <button type="button" class="preset-btn speed-preset-btn" data-preset="fast">Fast</button>
+        <button type="button" class="preset-btn speed-preset-btn" data-preset="insane">Insane</button>
+      </div>
+
+      <div class="config-label" style="margin-top: 10px;">
+        <span>Falling Items Speed:</span>
+        <span id="fall-speed-val" class="config-val">1.0x</span>
+      </div>
+      <input type="range" id="fall-speed-slider" min="0.5" max="2.5" step="0.1" value="1.0">
+
+      <div class="config-label" style="margin-top: 8px;">
+        <span>Steve Movement Speed:</span>
+        <span id="steve-speed-val" class="config-val">7</span>
+      </div>
+      <input type="range" id="steve-speed-slider" min="4" max="14" step="1" value="7">
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="dynamic-accel-checkbox" checked>
+        <span>Gradual acceleration (speed increases with score)</span>
+      </label>
+    </div>
+
+    <!-- Audio & Haptics Section -->
+    <div class="config-section">
+      <div class="section-title">🔊 Music, Sound & Haptics</div>
+
+      <div class="config-label">
+        <span>Master Volume:</span>
+        <span id="volume-val" class="config-val">80%</span>
+      </div>
+      <input type="range" id="volume-slider" min="0" max="100" step="5" value="80">
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="bgm-checkbox" checked>
+        <span>🎵 Background Music (Chiptune 8-bit BGM)</span>
+      </label>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="sfx-checkbox" checked>
+        <span>💥 Sound Effects (Diamonds, Apples, TNT)</span>
+      </label>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="vibration-checkbox" checked>
+        <span>📳 Phone Vibration (Haptic pulse on Creeper hit)</span>
+      </label>
+
+      <div style="margin-top: 10px; display: flex; gap: 8px;">
+        <button type="button" id="test-vibe-btn" class="retro-btn retro-btn-orange" style="font-size: 11px; flex: 1;">
+          💥 Test Creeper Sound & Vibration
+        </button>
+      </div>
+    </div>
+
+    <!-- Dialog Action Buttons -->
+    <div class="dialog-footer">
+      <button id="reset-config-btn" class="retro-btn">Reset Defaults</button>
+      <button id="save-config-btn" class="retro-btn retro-btn-accent">Save & Play</button>
+    </div>
+  </dialog>
+
+  <!-- Parent PIN Entry Keypad Dialog -->
+  <dialog id="pin-dialog">
+    <div style="display: flex; justify-content: flex-end;">
+      <button id="pin-dialog-close-x" class="retro-btn" style="padding: 2px 8px;">✕</button>
+    </div>
+    <div class="pin-title" id="pin-modal-title">🔒 PARENT PIN REQUIRED</div>
+    <div class="pin-subtitle" id="pin-modal-subtitle">Enter parent PIN to unlock play time or settings:</div>
+    
+    <div class="pin-dots">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+
+    <div class="pin-error" id="pin-error-msg"></div>
+
+    <div class="keypad-grid" id="pin-keypad-grid">
+      <button type="button" class="keypad-btn" data-key="1">1</button>
+      <button type="button" class="keypad-btn" data-key="2">2</button>
+      <button type="button" class="keypad-btn" data-key="3">3</button>
+      <button type="button" class="keypad-btn" data-key="4">4</button>
+      <button type="button" class="keypad-btn" data-key="5">5</button>
+      <button type="button" class="keypad-btn" data-key="6">6</button>
+      <button type="button" class="keypad-btn" data-key="7">7</button>
+      <button type="button" class="keypad-btn" data-key="8">8</button>
+      <button type="button" class="keypad-btn" data-key="9">9</button>
+      <button type="button" class="keypad-btn keypad-btn-clear" data-key="clear">CLEAR</button>
+      <button type="button" class="keypad-btn" data-key="0">0</button>
+      <button type="button" class="keypad-btn" data-key="backspace">⌫</button>
+    </div>
+  </dialog>
+
+  <!-- Parent Action / Time Grant Dialog -->
+  <dialog id="parent-action-dialog">
+    <div class="action-title">✅ PARENT VERIFIED</div>
+    <div style="font-size: 13px; color: #ccc;">How much play time would you like to grant?</div>
+
+    <div class="action-buttons-list">
+      <button type="button" class="action-choice-btn" data-grant="15">⏱ Grant +15 Minutes</button>
+      <button type="button" class="action-choice-btn" data-grant="30">⏱ Grant +30 Minutes</button>
+      <button type="button" class="action-choice-btn" data-grant="60">⏱ Grant +60 Minutes</button>
+      <button type="button" class="action-choice-btn" data-grant="settings" style="background: #006064; border-color: #00bcd4;">
+        ⚙ Open Settings & Change PIN
+      </button>
+    </div>
+    <button id="parent-action-cancel-btn" class="retro-btn" style="width: 100%;">Cancel / Keep Locked</button>
+  </dialog>
+
+<script>
+// --- Configuration & Persistence ---
+const CONFIG_STORAGE_KEY = 'steve_game_config';
+const LOCK_STORAGE_KEY = 'steve_is_locked';
+const TIME_REMAINING_STORAGE_KEY = 'steve_time_remaining';
+const PARENT_PIN_HASH_KEY = 'steve_parent_pin_hash';
+const FAILED_ATTEMPTS_KEY = 'steve_pin_failed_attempts';
+const LOCKOUT_UNTIL_KEY = 'steve_pin_lockout_until';
+
+// Salted SHA-256 of default PIN '1234'
+const PIN_SALT = 'steve_minecraft_salt_2024_';
+const DEFAULT_PIN_HASH = 'b6679aa18448f9a42490b6d83963400b17690f64bfe0601385b131080c045f1b';
+
+// Cryptographic Salted SHA-256 Hash using Browser Web Crypto API
+async function hashPin(pin) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(PIN_SALT + pin);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function getStoredPinHash() {
+  return localStorage.getItem(PARENT_PIN_HASH_KEY) || DEFAULT_PIN_HASH;
+}
+
+async function setParentPin(newPin) {
+  const hashed = await hashPin(newPin);
+  localStorage.setItem(PARENT_PIN_HASH_KEY, hashed);
+}
+
+const PRESETS = {
+  slow:   { name: 'Slow',   fallSpeedMultiplier: 0.7, steveSpeed: 6, dynamicAccel: true },
+  normal: { name: 'Normal', fallSpeedMultiplier: 1.0, steveSpeed: 7, dynamicAccel: true },
+  fast:   { name: 'Fast',   fallSpeedMultiplier: 1.4, steveSpeed: 9, dynamicAccel: true },
+  insane: { name: 'Insane', fallSpeedMultiplier: 1.8, steveSpeed: 11, dynamicAccel: false }
+};
+
+let config = loadConfig();
+
+function loadConfig() {
+  try {
+    const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        preset: parsed.preset || 'normal',
+        fallSpeedMultiplier: Number(parsed.fallSpeedMultiplier) || 1.0,
+        steveSpeed: Number(parsed.steveSpeed) || 7,
+        dynamicAccel: parsed.dynamicAccel !== false,
+        soundEnabled: parsed.soundEnabled !== false,
+        bgmEnabled: parsed.bgmEnabled !== false,
+        sfxEnabled: parsed.sfxEnabled !== false,
+        vibration: parsed.vibration !== false,
+        volume: Number(parsed.volume) !== undefined ? Number(parsed.volume) : 80,
+        timerEnabled: parsed.timerEnabled !== false,
+        timerMinutes: Number(parsed.timerMinutes) || 15,
+        parentLockEnabled: parsed.parentLockEnabled !== false
+      };
+    }
+  } catch (e) {
+    console.warn('Failed to load saved config:', e);
+  }
+  return {
+    preset: 'normal',
+    fallSpeedMultiplier: 1.0,
+    steveSpeed: 7,
+    dynamicAccel: true,
+    soundEnabled: true,
+    bgmEnabled: true,
+    sfxEnabled: true,
+    vibration: true,
+    volume: 80,
+    timerEnabled: true,
+    timerMinutes: 15,
+    parentLockEnabled: true
+  };
+}
+
+function saveConfig(newConfig) {
+  config = { ...config, ...newConfig };
+  try {
+    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
+  } catch (e) {
+    console.warn('Failed to save config:', e);
+  }
+  applyConfig();
+}
+
+// --- Anti-Tamper Reload Lock State ---
+let isLocked = localStorage.getItem(LOCK_STORAGE_KEY) === 'true';
+
+let timeRemainingSeconds = (() => {
+  if (isLocked) return 0;
+  const savedSec = localStorage.getItem(TIME_REMAINING_STORAGE_KEY);
+  if (savedSec !== null && !isNaN(Number(savedSec))) {
+    const val = Number(savedSec);
+    return val > 0 ? val : 0;
+  }
+  return config.timerMinutes * 60;
+})();
+
+let lastTickTimestamp = Date.now();
+
+function persistTimeAndLock() {
+  try {
+    if (isLocked) {
+      localStorage.setItem(LOCK_STORAGE_KEY, 'true');
+      localStorage.setItem(TIME_REMAINING_STORAGE_KEY, '0');
+    } else {
+      localStorage.removeItem(LOCK_STORAGE_KEY);
+      localStorage.setItem(TIME_REMAINING_STORAGE_KEY, Math.floor(timeRemainingSeconds).toString());
+    }
+  } catch (e) {}
+}
+
+// --- Brute Force Protection / Rate Limiting ---
+let failedAttempts = Number(localStorage.getItem(FAILED_ATTEMPTS_KEY)) || 0;
+let lockoutUntil = Number(localStorage.getItem(LOCKOUT_UNTIL_KEY)) || 0;
+let lockoutTimerId = null;
+
+function isKeypadLockedOut() {
+  const now = Date.now();
+  if (lockoutUntil > now) {
+    return true;
+  }
+  if (lockoutUntil > 0) {
+    lockoutUntil = 0;
+    failedAttempts = 0;
+    localStorage.removeItem(FAILED_ATTEMPTS_KEY);
+    localStorage.removeItem(LOCKOUT_UNTIL_KEY);
+  }
+  return false;
+}
+
+function updateLockoutUI() {
+  const pinErrorMsg = document.getElementById('pin-error-msg');
+  const keypadButtons = document.querySelectorAll('.keypad-btn');
+
+  if (isKeypadLockedOut()) {
+    const remainingSec = Math.ceil((lockoutUntil - Date.now()) / 1000);
+    pinErrorMsg.textContent = `⏳ Locked for ${remainingSec}s due to wrong attempts.`;
+    keypadButtons.forEach(btn => btn.disabled = true);
+
+    if (lockoutTimerId) clearInterval(lockoutTimerId);
+    lockoutTimerId = setInterval(() => {
+      if (!isKeypadLockedOut()) {
+        clearInterval(lockoutTimerId);
+        lockoutTimerId = null;
+        updateLockoutUI();
+      } else {
+        const sec = Math.ceil((lockoutUntil - Date.now()) / 1000);
+        pinErrorMsg.textContent = `⏳ Locked for ${sec}s due to wrong attempts.`;
+      }
+    }, 1000);
+  } else {
+    keypadButtons.forEach(btn => btn.disabled = false);
+    if (!pinBuffer) {
+      pinErrorMsg.textContent = '';
+    }
+  }
+}
+
+// --- Web Audio Synthesizer Engine ---
+class RetroSoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.sfxGain = null;
+    this.bgmGain = null;
+    this.isBgmPlaying = false;
+    this.bgmTimeoutId = null;
+    this.bgmStep = 0;
+  }
+
+  init() {
+    if (this.ctx) return;
+    const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtxClass) return;
+    this.ctx = new AudioCtxClass();
+
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.connect(this.ctx.destination);
+
+    this.sfxGain = this.ctx.createGain();
+    this.sfxGain.connect(this.masterGain);
+
+    this.bgmGain = this.ctx.createGain();
+    this.bgmGain.connect(this.masterGain);
+
+    this.updateGains();
+  }
+
+  resume() {
+    this.init();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  updateGains() {
+    if (!this.ctx) return;
+    const masterVol = config.soundEnabled ? (config.volume / 100) : 0;
+    this.masterGain.gain.setValueAtTime(masterVol, this.ctx.currentTime);
+    this.sfxGain.gain.setValueAtTime(config.sfxEnabled ? 1.0 : 0, this.ctx.currentTime);
+    this.bgmGain.gain.setValueAtTime(config.bgmEnabled ? 0.35 : 0, this.ctx.currentTime);
+  }
+
+  playDiamond() {
+    if (!config.soundEnabled || !config.sfxEnabled) return;
+    this.resume();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.12);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.14);
+  }
+
+  playBonus() {
+    if (!config.soundEnabled || !config.sfxEnabled) return;
+    this.resume();
+    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+    notes.forEach((freq, idx) => {
+      const now = this.ctx.currentTime + idx * 0.045;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    });
+  }
+
+  playExplosion() {
+    if (!config.soundEnabled || !config.sfxEnabled) return;
+    this.resume();
+    const now = this.ctx.currentTime;
+
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.38);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800, now);
+    filter.frequency.linearRampToValueAtTime(50, now + 0.38);
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.45, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.38);
+
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(this.sfxGain);
+    noise.start(now);
+
+    const osc = this.ctx.createOscillator();
+    const oscGain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(25, now + 0.35);
+
+    oscGain.gain.setValueAtTime(0.35, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+    osc.connect(oscGain);
+    oscGain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.35);
+  }
+
+  playGameOver() {
+    if (!config.soundEnabled || !config.sfxEnabled) return;
+    this.resume();
+    const notes = [392.00, 349.23, 311.13, 261.63];
+    notes.forEach((freq, idx) => {
+      const now = this.ctx.currentTime + idx * 0.18;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now);
+
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    });
+  }
+
+  playLockSound() {
+    if (!config.soundEnabled || !config.sfxEnabled) return;
+    this.resume();
+    const notes = [440.00, 370.00, 311.13, 220.00];
+    notes.forEach((freq, idx) => {
+      const now = this.ctx.currentTime + idx * 0.15;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    });
+  }
+
+  playUnlockSuccess() {
+    if (!config.soundEnabled || !config.sfxEnabled) return;
+    this.resume();
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, idx) => {
+      const now = this.ctx.currentTime + idx * 0.1;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 0.18);
+    });
+  }
+
+  startBgm() {
+    if (!config.soundEnabled || !config.bgmEnabled || isLocked) return;
+    this.resume();
+    if (this.isBgmPlaying) return;
+    this.isBgmPlaying = true;
+    this.scheduleBgmStep();
+  }
+
+  stopBgm() {
+    this.isBgmPlaying = false;
+    if (this.bgmTimeoutId) {
+      clearTimeout(this.bgmTimeoutId);
+      this.bgmTimeoutId = null;
+    }
+  }
+
+  scheduleBgmStep() {
+    if (!this.isBgmPlaying || !this.ctx || isPaused || gameOver || isLocked) {
+      this.isBgmPlaying = false;
+      return;
+    }
+
+    const melody = [
+      523.25, 0, 523.25, 659.25, 783.99, 659.25, 523.25, 0,
+      587.33, 0, 659.25, 587.33, 523.25, 440.00, 392.00, 440.00
+    ];
+    const bass = [
+      130.81, 130.81, 164.81, 164.81, 196.00, 196.00, 130.81, 130.81,
+      146.83, 146.83, 164.81, 146.83, 130.81, 110.00, 98.00, 110.00
+    ];
+
+    const stepDuration = 0.16;
+    const now = this.ctx.currentTime;
+    const mFreq = melody[this.bgmStep];
+    const bFreq = bass[this.bgmStep];
+
+    if (mFreq > 0 && config.soundEnabled && config.bgmEnabled) {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(mFreq, now);
+      gain.gain.setValueAtTime(0.07, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + stepDuration * 0.88);
+      osc.connect(gain);
+      gain.connect(this.bgmGain);
+      osc.start(now);
+      osc.stop(now + stepDuration * 0.88);
+    }
+
+    if (bFreq > 0 && config.soundEnabled && config.bgmEnabled) {
+      const bOsc = this.ctx.createOscillator();
+      const bGain = this.ctx.createGain();
+      bOsc.type = 'triangle';
+      bOsc.frequency.setValueAtTime(bFreq, now);
+      bGain.gain.setValueAtTime(0.12, now);
+      bGain.gain.exponentialRampToValueAtTime(0.001, now + stepDuration * 0.88);
+      bOsc.connect(bGain);
+      bGain.connect(this.bgmGain);
+      bOsc.start(now);
+      bOsc.stop(now + stepDuration * 0.88);
+    }
+
+    this.bgmStep = (this.bgmStep + 1) % melody.length;
+    this.bgmTimeoutId = setTimeout(() => {
+      this.scheduleBgmStep();
+    }, stepDuration * 1000);
+  }
+}
+
+const soundEngine = new RetroSoundEngine();
+
+// --- Vibration Feedback ---
+let screenShakeTimer = 0;
+let creeperFlashTimer = 0;
+
+function triggerCreeperImpact() {
+  soundEngine.playExplosion();
+
+  if (config.vibration && 'vibrate' in navigator) {
+    try {
+      navigator.vibrate([140, 60, 260]);
+    } catch (err) {}
+  }
+
+  screenShakeTimer = 16;
+  creeperFlashTimer = 6;
+}
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function triggerParentLockout() {
+  isLocked = true;
+  timeRemainingSeconds = 0;
+  persistTimeAndLock();
+
+  soundEngine.stopBgm();
+  soundEngine.playLockSound();
+
+  if (config.vibration && 'vibrate' in navigator) {
+    try {
+      navigator.vibrate([200, 100, 300]);
+    } catch (e) {}
+  }
+
+  if (score > highScore) {
+    highScore = score;
+    try {
+      localStorage.setItem('steve_highscore', highScore);
+    } catch (e) {}
+  }
+
+  updateLockUI();
+  draw();
+}
+
+function updateLockUI() {
+  const lockActionBar = document.getElementById('lock-action-bar');
+  const touchControls = document.getElementById('touch-controls');
+  const touchHint = document.getElementById('touch-hint-text');
+
+  if (isLocked) {
+    lockActionBar.classList.add('visible');
+    touchControls.style.display = 'none';
+    touchHint.style.display = 'none';
+  } else {
+    lockActionBar.classList.remove('visible');
+    touchControls.style.display = 'flex';
+    touchHint.style.display = 'block';
+  }
+  updateTimerStatusDisplay();
+}
+
+function updateTimerStatusDisplay() {
+  const display = document.getElementById('timer-display');
+  if (!display) return;
+
+  if (isLocked) {
+    display.textContent = '🔒 LOCKED';
+    display.className = 'status-badge status-badge-locked';
+    return;
+  }
+
+  if (!config.timerEnabled) {
+    display.textContent = 'OFF';
+    display.className = 'status-badge';
+    return;
+  }
+
+  display.textContent = formatTime(timeRemainingSeconds);
+  if (timeRemainingSeconds <= 30) {
+    display.className = 'status-badge status-badge-danger';
+  } else if (timeRemainingSeconds <= 120) {
+    display.className = 'status-badge status-badge-warn';
+  } else {
+    display.className = 'status-badge';
+  }
+}
+
+// --- Canvas & Game State ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let score = 0;
+let highScore = Number(localStorage.getItem('steve_highscore')) || 0;
+let lives = 3;
+let gameOver = false;
+let isPaused = false;
+let speedMultiplier = config.fallSpeedMultiplier;
+
+// Player (Steve)
+const steve = {
+  width: 44,
+  height: 60,
+  x: canvas.width / 2 - 22,
+  y: canvas.height - 75,
+  speed: config.steveSpeed,
+  movingLeft: false,
+  movingRight: false
+};
+
+// Falling items
+let items = [];
+let spawnCounter = 0;
+
+function applyConfig() {
+  steve.speed = config.steveSpeed;
+  if (!gameOver && !isLocked) {
+    speedMultiplier = config.fallSpeedMultiplier;
+  }
+  soundEngine.updateGains();
+  updateSpeedStatusDisplay();
+  updateSoundStatusDisplay();
+  updateLockUI();
+
+  if (config.soundEnabled && config.bgmEnabled && !isPaused && !gameOver && !isLocked) {
+    soundEngine.startBgm();
+  } else {
+    soundEngine.stopBgm();
+  }
+}
+
+function updateSpeedStatusDisplay() {
+  const display = document.getElementById('speed-display');
+  if (display) {
+    const presetLabel = config.preset !== 'custom' ? ` (${config.preset.toUpperCase()})` : ' (Custom)';
+    display.textContent = `${config.fallSpeedMultiplier.toFixed(1)}x${presetLabel}`;
+  }
+}
+
+function updateSoundStatusDisplay() {
+  const soundBtn = document.getElementById('sound-toggle-btn');
+  const soundStatus = document.getElementById('sound-status-display');
+  if (soundBtn) {
+    soundBtn.textContent = config.soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+    soundBtn.classList.toggle('retro-btn-accent', config.soundEnabled);
+  }
+  if (soundStatus) {
+    if (!config.soundEnabled) {
+      soundStatus.textContent = 'MUTED';
+      soundStatus.style.color = '#ff6666';
+    } else {
+      const parts = [];
+      if (config.bgmEnabled) parts.push('BGM');
+      if (config.sfxEnabled) parts.push('SFX');
+      if (config.vibration) parts.push('VIBE');
+      soundStatus.textContent = `ON (${parts.join('+') || 'VOL'})`;
+      soundStatus.style.color = '#4dedf4';
+    }
+  }
+}
+
+function toggleSound() {
+  soundEngine.resume();
+  config.soundEnabled = !config.soundEnabled;
+  saveConfig({ soundEnabled: config.soundEnabled });
+}
+
+// --- Restart & Game Loop Controls ---
+function restartGame() {
+  if (isLocked) {
+    openPinModal('unlock_game');
+    return;
+  }
+  soundEngine.resume();
+  score = 0;
+  lives = 3;
+  items = [];
+  speedMultiplier = config.fallSpeedMultiplier;
+  steve.x = canvas.width / 2 - steve.width / 2;
+  steve.movingLeft = false;
+  steve.movingRight = false;
+  gameOver = false;
+  isPaused = false;
+  screenShakeTimer = 0;
+  creeperFlashTimer = 0;
+
+  lastTickTimestamp = Date.now();
+  updatePauseButton();
+  updateTimerStatusDisplay();
+  soundEngine.startBgm();
+  loop();
+}
+
+function togglePause() {
+  if (gameOver || isLocked) return;
+  soundEngine.resume();
+  isPaused = !isPaused;
+  updatePauseButton();
+  if (!isPaused) {
+    lastTickTimestamp = Date.now();
+    soundEngine.startBgm();
+    loop();
+  } else {
+    soundEngine.stopBgm();
+    draw();
+  }
+}
+
+function updatePauseButton() {
+  const pauseBtn = document.getElementById('pause-btn');
+  if (pauseBtn) {
+    pauseBtn.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+  }
+}
+
+// --- Keyboard Controls ---
+window.addEventListener('keydown', (e) => {
+  soundEngine.resume();
+  if (isLocked) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      openPinModal('unlock_game');
+    }
+    return;
+  }
+
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+    steve.movingLeft = true;
+  }
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+    steve.movingRight = true;
+  }
+  if (e.key === ' ' || e.key === 'Enter') {
+    if (gameOver) {
+      restartGame();
+    }
+  }
+  if (e.key === 'p' || e.key === 'P') {
+    togglePause();
+  }
+  if (e.key === 'm' || e.key === 'M') {
+    toggleSound();
+  }
+  if (e.key === 'Escape') {
+    if (pinDialog.open) {
+      closePinDialog();
+    } else if (configDialog.open) {
+      closeConfigDialog();
+    } else {
+      togglePause();
+    }
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+    steve.movingLeft = false;
+  }
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+    steve.movingRight = false;
+  }
+});
+
+// --- Mobile Touch Buttons ---
+const leftTouchBtn = document.getElementById('left-touch-btn');
+const rightTouchBtn = document.getElementById('right-touch-btn');
+
+function bindTouchButton(element, direction) {
+  const start = (e) => {
+    e.preventDefault();
+    if (isLocked) return;
+    soundEngine.resume();
+    if (direction === 'left') steve.movingLeft = true;
+    if (direction === 'right') steve.movingRight = true;
+    element.classList.add('active');
+  };
+  const end = (e) => {
+    e.preventDefault();
+    if (direction === 'left') steve.movingLeft = false;
+    if (direction === 'right') steve.movingRight = false;
+    element.classList.remove('active');
+  };
+
+  element.addEventListener('touchstart', start, { passive: false });
+  element.addEventListener('touchend', end, { passive: false });
+  element.addEventListener('touchcancel', end, { passive: false });
+
+  element.addEventListener('mousedown', start);
+  element.addEventListener('mouseup', end);
+  element.addEventListener('mouseleave', end);
+}
+
+bindTouchButton(leftTouchBtn, 'left');
+bindTouchButton(rightTouchBtn, 'right');
+
+// --- Direct Canvas Touch / Drag ---
+let isTouchingCanvas = false;
+
+function getCanvasCoords(touchOrMouseEvent) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return {
+    x: (touchOrMouseEvent.clientX - rect.left) * scaleX,
+    y: (touchOrMouseEvent.clientY - rect.top) * scaleY
+  };
+}
+
+function handleCanvasPointerMove(pos) {
+  if (gameOver || isPaused || isLocked) return;
+  const targetX = pos.x - steve.width / 2;
+  steve.x = Math.max(0, Math.min(canvas.width - steve.width, targetX));
+}
+
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  soundEngine.resume();
+  if (isLocked) {
+    openPinModal('unlock_game');
+    return;
+  }
+  if (gameOver) {
+    restartGame();
+    return;
+  }
+  if (isPaused) {
+    togglePause();
+    return;
+  }
+  if (e.touches.length > 0) {
+    isTouchingCanvas = true;
+    const pos = getCanvasCoords(e.touches[0]);
+    handleCanvasPointerMove(pos);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (isTouchingCanvas && e.touches.length > 0) {
+    const pos = getCanvasCoords(e.touches[0]);
+    handleCanvasPointerMove(pos);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+  isTouchingCanvas = false;
+});
+
+canvas.addEventListener('click', (e) => {
+  soundEngine.resume();
+  if (isLocked) {
+    openPinModal('unlock_game');
+  } else if (gameOver) {
+    restartGame();
+  } else if (isPaused) {
+    togglePause();
+  }
+});
+
+// --- Spawn random items ---
+function spawnItem() {
+  const rand = Math.random();
+  let type = 'diamond';
+  
+  if (rand < 0.25) {
+    type = 'creeper';
+  } else if (rand < 0.35) {
+    type = 'bonus';
+  }
+
+  items.push({
+    x: Math.random() * (canvas.width - 32),
+    y: -35,
+    size: 28,
+    type: type,
+    speed: (2.5 + Math.random() * 2) * speedMultiplier
+  });
+}
+
+// --- Update Game State ---
+let persistCounter = 0;
+
+function update() {
+  if (isPaused || gameOver || isLocked) return;
+
+  const now = Date.now();
+  const deltaSec = (now - lastTickTimestamp) / 1000;
+  lastTickTimestamp = now;
+
+  if (config.timerEnabled) {
+    timeRemainingSeconds -= deltaSec;
+
+    persistCounter++;
+    if (persistCounter > 60) {
+      persistTimeAndLock();
+      persistCounter = 0;
+    }
+
+    if (timeRemainingSeconds <= 0) {
+      triggerParentLockout();
+      return;
+    }
+  }
+
+  if (steve.movingLeft && steve.x > 0) {
+    steve.x -= steve.speed;
+  }
+  if (steve.movingRight && steve.x < canvas.width - steve.width) {
+    steve.x += steve.speed;
+  }
+
+  if (config.dynamicAccel) {
+    speedMultiplier += 0.00015;
+  }
+
+  spawnCounter++;
+  if (spawnCounter > Math.max(25, 60 - score)) {
+    spawnItem();
+    spawnCounter = 0;
+  }
+
+  for (let i = items.length - 1; i >= 0; i--) {
+    let item = items[i];
+    item.y += item.speed;
+
+    if (
+      item.x < steve.x + steve.width &&
+      item.x + item.size > steve.x &&
+      item.y < steve.y + steve.height &&
+      item.y + item.size > steve.y
+    ) {
+      if (item.type === 'diamond') {
+        score += 1;
+        soundEngine.playDiamond();
+      } else if (item.type === 'bonus') {
+        score += 5;
+        soundEngine.playBonus();
+      } else if (item.type === 'creeper') {
+        lives -= 1;
+        triggerCreeperImpact();
+        if (lives <= 0) {
+          gameOver = true;
+          soundEngine.stopBgm();
+          soundEngine.playGameOver();
+          if (score > highScore) {
+            highScore = score;
+            try {
+              localStorage.setItem('steve_highscore', highScore);
+            } catch (e) {}
+          }
+        }
+      }
+      items.splice(i, 1);
+      continue;
+    }
+
+    if (item.y > canvas.height) {
+      items.splice(i, 1);
+    }
+  }
+
+  updateTimerStatusDisplay();
+}
+
+// --- Render Game Frame ---
+function draw() {
+  ctx.save();
+
+  if (screenShakeTimer > 0) {
+    screenShakeTimer--;
+    const shakeIntensity = (screenShakeTimer / 16) * 10;
+    const offsetX = (Math.random() - 0.5) * shakeIntensity;
+    const offsetY = (Math.random() - 0.5) * shakeIntensity;
+    ctx.translate(offsetX, offsetY);
+  }
+
+  // Sky
+  ctx.fillStyle = '#78c6ff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Ground
+  ctx.fillStyle = '#569b32';
+  ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+  ctx.fillStyle = '#7a5229';
+  ctx.fillRect(0, canvas.height - 14, canvas.width, 14);
+
+  // Steve & Items
+  drawSteve(steve.x, steve.y);
+  items.forEach(drawItem);
+
+  if (creeperFlashTimer > 0) {
+    creeperFlashTimer--;
+    ctx.fillStyle = 'rgba(255, 30, 30, 0.4)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // HUD: Hearts
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = i < lives ? '#ff2222' : '#555555';
+    ctx.fillRect(20 + i * 26, 20, 20, 20);
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(20 + i * 26, 20, 20, 20);
+  }
+
+  // HUD: Timer
+  if (config.timerEnabled && !isLocked) {
+    const isUrgent = timeRemainingSeconds <= 30;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.fillRect(canvas.width / 2 - 55, 16, 110, 28);
+    ctx.strokeStyle = isUrgent ? '#ff4444' : '#4dedf4';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(canvas.width / 2 - 55, 16, 110, 28);
+
+    ctx.fillStyle = isUrgent ? '#ff5555' : (timeRemainingSeconds <= 120 ? '#ffcc00' : '#ffffff');
+    ctx.font = 'bold 16px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`⏱ ${formatTime(timeRemainingSeconds)}`, canvas.width / 2, 36);
+  }
+
+  // HUD: Score & High Score
+  ctx.fillStyle = '#000000';
+  ctx.font = 'bold 20px "Courier New", monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText(`Score: ${score}`, canvas.width - 20, 36);
+  ctx.font = '14px "Courier New", monospace';
+  ctx.fillText(`Best: ${highScore}`, canvas.width - 20, 56);
+  ctx.textAlign = 'left';
+
+  // Pause Overlay
+  if (isPaused && !gameOver && !isLocked) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#ffff55';
+    ctx.font = 'bold 36px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2 - 15);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '18px "Courier New", monospace';
+    ctx.fillText('Tap screen or click Resume to continue', canvas.width / 2, canvas.height / 2 + 25);
+    ctx.textAlign = 'left';
+  }
+
+  // Game Over screen
+  if (gameOver && !isLocked) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#ff4444';
+    ctx.font = 'bold 36px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('GAME OVER!', canvas.width / 2, canvas.height / 2 - 35);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '20px "Courier New", monospace';
+    ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 + 10);
+
+    ctx.fillStyle = '#2e7d32';
+    ctx.fillRect(canvas.width / 2 - 140, canvas.height / 2 + 40, 280, 44);
+    ctx.strokeStyle = '#55ff55';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(canvas.width / 2 - 140, canvas.height / 2 + 40, 280, 44);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 16px "Courier New", monospace';
+    ctx.fillText('TAP OR PRESS ENTER TO RESTART', canvas.width / 2, canvas.height / 2 + 68);
+    ctx.textAlign = 'left';
+  }
+
+  // 🔒 PARENT LOCK SCREEN OVERLAY
+  if (isLocked) {
+    ctx.fillStyle = 'rgba(15, 10, 10, 0.93)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Iron bars texture behind lock
+    ctx.strokeStyle = '#444444';
+    ctx.lineWidth = 4;
+    for (let x = 40; x < canvas.width; x += 50) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+
+    // Large Golden Padlock Graphic
+    const lcx = canvas.width / 2;
+    const lcy = canvas.height / 2 - 70;
+
+    // Shackle
+    ctx.strokeStyle = '#cccccc';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(lcx, lcy - 20, 28, Math.PI, 0, false);
+    ctx.stroke();
+
+    // Body
+    ctx.fillStyle = '#ffb300';
+    ctx.fillRect(lcx - 40, lcy - 10, 80, 60);
+    ctx.strokeStyle = '#ffe082';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(lcx - 40, lcy - 10, 80, 60);
+
+    // Keyhole
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.arc(lcx, lcy + 14, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(lcx - 3, lcy + 14, 6, 16);
+
+    // Lock Messages
+    ctx.fillStyle = '#ff4444';
+    ctx.font = 'bold 30px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('SCREEN TIME LOCKED', canvas.width / 2, canvas.height / 2 + 80);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '16px "Courier New", monospace';
+    ctx.fillText('Play time limit has expired.', canvas.width / 2, canvas.height / 2 + 110);
+
+    ctx.fillStyle = '#ffcc00';
+    ctx.font = '14px "Courier New", monospace';
+    ctx.fillText('Ask a parent to unlock more screen time.', canvas.width / 2, canvas.height / 2 + 135);
+
+    // Tap to Unlock prompt
+    ctx.fillStyle = '#b71c1c';
+    ctx.fillRect(canvas.width / 2 - 160, canvas.height / 2 + 160, 320, 42);
+    ctx.strokeStyle = '#ff5555';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(canvas.width / 2 - 160, canvas.height / 2 + 160, 320, 42);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px "Courier New", monospace';
+    ctx.fillText('🔒 TAP TO ENTER PARENT PIN', canvas.width / 2, canvas.height / 2 + 186);
+
+    ctx.textAlign = 'left';
+  }
+
+  ctx.restore();
+}
+
+function loop() {
+  if (!gameOver && !isPaused && !isLocked) {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  } else {
+    draw();
+  }
+}
+
+// --- Parent PIN Verification Logic with Cryptographic Hashing ---
+let pinBuffer = '';
+let pinTargetAction = null; // 'open_config', 'unlock_game', 'change_pin_auth', 'set_new_pin'
+
+const pinDialog = document.getElementById('pin-dialog');
+const pinTitle = document.getElementById('pin-modal-title');
+const pinSubtitle = document.getElementById('pin-modal-subtitle');
+const pinErrorMsg = document.getElementById('pin-error-msg');
+const pinCloseX = document.getElementById('pin-dialog-close-x');
+const parentActionDialog = document.getElementById('parent-action-dialog');
+const parentUnlockBtn = document.getElementById('parent-unlock-btn');
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById(`dot-${i}`);
+    if (dot) {
+      dot.classList.toggle('filled', i < pinBuffer.length);
+    }
+  }
+}
+
+function openPinModal(action) {
+  soundEngine.resume();
+  pinTargetAction = action;
+  pinBuffer = '';
+  pinErrorMsg.textContent = '';
+  updatePinDots();
+  updateLockoutUI();
+
+  if (action === 'open_config') {
+    pinTitle.textContent = '🔒 PARENT PIN REQUIRED';
+    pinSubtitle.textContent = 'Enter PIN to access game settings:';
+  } else if (action === 'change_pin_auth') {
+    pinTitle.textContent = '🔒 VERIFY CURRENT PIN';
+    pinSubtitle.textContent = 'Enter current PIN before setting a new code:';
+  } else if (action === 'set_new_pin') {
+    pinTitle.textContent = '🔑 SET NEW PARENT PIN';
+    pinSubtitle.textContent = 'Enter a new 4-digit secret PIN:';
+  } else {
+    pinTitle.textContent = '🔒 PARENT CONSENT REQUIRED';
+    pinSubtitle.textContent = 'Enter parent PIN to unlock play time:';
+  }
+
+  pinDialog.showModal();
+}
+
+function closePinDialog() {
+  pinDialog.close();
+  pinBuffer = '';
+  pinErrorMsg.textContent = '';
+}
+
+pinCloseX.addEventListener('click', closePinDialog);
+parentUnlockBtn.addEventListener('click', () => openPinModal('unlock_game'));
+
+document.querySelectorAll('.keypad-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    soundEngine.resume();
+    if (isKeypadLockedOut()) return;
+
+    const key = btn.dataset.key;
+    if (key >= '0' && key <= '9') {
+      if (pinBuffer.length < 4) {
+        pinBuffer += key;
+        updatePinDots();
+        if (pinBuffer.length === 4) {
+          setTimeout(submitPin, 150);
+        }
+      }
+    } else if (key === 'backspace') {
+      pinBuffer = pinBuffer.slice(0, -1);
+      pinErrorMsg.textContent = '';
+      updatePinDots();
+    } else if (key === 'clear') {
+      pinBuffer = '';
+      pinErrorMsg.textContent = '';
+      updatePinDots();
+    }
+  });
+});
+
+window.addEventListener('keydown', (e) => {
+  if (!pinDialog.open || isKeypadLockedOut()) return;
+  if (e.key >= '0' && e.key <= '9') {
+    if (pinBuffer.length < 4) {
+      pinBuffer += e.key;
+      updatePinDots();
+      if (pinBuffer.length === 4) {
+        setTimeout(submitPin, 150);
+      }
+    }
+  } else if (e.key === 'Backspace') {
+    pinBuffer = pinBuffer.slice(0, -1);
+    pinErrorMsg.textContent = '';
+    updatePinDots();
+  }
+});
+
+async function submitPin() {
+  if (isKeypadLockedOut()) return;
+
+  // Step A: Setting a new PIN
+  if (pinTargetAction === 'set_new_pin') {
+    await setParentPin(pinBuffer);
+    soundEngine.playUnlockSuccess();
+    closePinDialog();
+    alert('✅ Parent PIN successfully updated!');
+    return;
+  }
+
+  // Step B: Verifying against stored cryptographic SHA-256 hash
+  const enteredHash = await hashPin(pinBuffer);
+  const storedHash = getStoredPinHash();
+
+  if (enteredHash === storedHash) {
+    // PIN verified! Reset failed attempts
+    failedAttempts = 0;
+    lockoutUntil = 0;
+    localStorage.removeItem(FAILED_ATTEMPTS_KEY);
+    localStorage.removeItem(LOCKOUT_UNTIL_KEY);
+
+    soundEngine.playUnlockSuccess();
+    const action = pinTargetAction;
+    closePinDialog();
+
+    if (action === 'open_config') {
+      showConfigDialogDirectly();
+    } else if (action === 'change_pin_auth') {
+      // Current PIN verified, now prompt for new PIN
+      openPinModal('set_new_pin');
+    } else {
+      parentActionDialog.showModal();
+    }
+  } else {
+    // Incorrect PIN -> apply penalty & rate limiting
+    failedAttempts++;
+    localStorage.setItem(FAILED_ATTEMPTS_KEY, failedAttempts.toString());
+
+    if (failedAttempts >= 5) {
+      // 5 failures -> 60s lockout
+      lockoutUntil = Date.now() + 60000;
+      localStorage.setItem(LOCKOUT_UNTIL_KEY, lockoutUntil.toString());
+    } else if (failedAttempts >= 3) {
+      // 3 failures -> 30s lockout
+      lockoutUntil = Date.now() + 30000;
+      localStorage.setItem(LOCKOUT_UNTIL_KEY, lockoutUntil.toString());
+    }
+
+    pinBuffer = '';
+    updatePinDots();
+    updateLockoutUI();
+
+    if (!isKeypadLockedOut()) {
+      pinErrorMsg.textContent = `❌ Incorrect PIN (${3 - (failedAttempts % 3)} attempts left before cooldown)`;
+    }
+
+    if (config.vibration && 'vibrate' in navigator) {
+      navigator.vibrate([120, 60, 120]);
+    }
+  }
+}
+
+// Parent Action Dialog Buttons
+document.querySelectorAll('.action-choice-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const grant = btn.dataset.grant;
+    parentActionDialog.close();
+
+    if (grant === 'settings') {
+      showConfigDialogDirectly();
+      return;
+    }
+
+    const extraMinutes = parseInt(grant, 10) || 15;
+    grantScreenTime(extraMinutes);
+  });
+});
+
+document.getElementById('parent-action-cancel-btn').addEventListener('click', () => {
+  parentActionDialog.close();
+});
+
+function grantScreenTime(minutes) {
+  isLocked = false;
+  timeRemainingSeconds = minutes * 60;
+  persistTimeAndLock();
+
+  score = 0;
+  lives = 3;
+  items = [];
+  gameOver = false;
+  isPaused = false;
+  lastTickTimestamp = Date.now();
+
+  updateLockUI();
+  updatePauseButton();
+  updateTimerStatusDisplay();
+  soundEngine.startBgm();
+  loop();
+}
+
+// --- Configuration Dialog Wiring ---
+const configDialog = document.getElementById('config-dialog');
+const configBtn = document.getElementById('config-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const soundToggleBtn = document.getElementById('sound-toggle-btn');
+const dialogCloseX = document.getElementById('dialog-close-x');
+const saveConfigBtn = document.getElementById('save-config-btn');
+const resetConfigBtn = document.getElementById('reset-config-btn');
+const testVibeBtn = document.getElementById('test-vibe-btn');
+
+const parentLockCheckbox = document.getElementById('parent-lock-checkbox');
+const changePinBtn = document.getElementById('change-pin-btn');
+
+const timerEnabledCheckbox = document.getElementById('timer-enabled-checkbox');
+const timerOptionsContainer = document.getElementById('timer-options-container');
+const timerSlider = document.getElementById('timer-slider');
+const timerVal = document.getElementById('timer-val');
+const timerPresetButtons = document.querySelectorAll('.timer-preset-btn');
+
+const fallSlider = document.getElementById('fall-speed-slider');
+const fallVal = document.getElementById('fall-speed-val');
+const steveSlider = document.getElementById('steve-speed-slider');
+const steveVal = document.getElementById('steve-speed-val');
+const accelCheckbox = document.getElementById('dynamic-accel-checkbox');
+const presetNameDisplay = document.getElementById('preset-name-display');
+const speedPresetButtons = document.querySelectorAll('.speed-preset-btn');
+
+const volumeSlider = document.getElementById('volume-slider');
+const volumeVal = document.getElementById('volume-val');
+const bgmCheckbox = document.getElementById('bgm-checkbox');
+const sfxCheckbox = document.getElementById('sfx-checkbox');
+const vibeCheckbox = document.getElementById('vibration-checkbox');
+
+let wasPausedBeforeDialog = false;
+
+function syncDialogUIWithConfig(targetConfig) {
+  parentLockCheckbox.checked = targetConfig.parentLockEnabled;
+
+  timerEnabledCheckbox.checked = targetConfig.timerEnabled;
+  timerOptionsContainer.style.opacity = targetConfig.timerEnabled ? '1' : '0.4';
+  timerSlider.value = targetConfig.timerMinutes;
+  timerVal.textContent = `${targetConfig.timerMinutes} min`;
+  timerPresetButtons.forEach(btn => {
+    btn.classList.toggle('active', Number(btn.dataset.minutes) === targetConfig.timerMinutes);
+  });
+
+  fallSlider.value = targetConfig.fallSpeedMultiplier;
+  fallVal.textContent = `${Number(targetConfig.fallSpeedMultiplier).toFixed(1)}x`;
+  steveSlider.value = targetConfig.steveSpeed;
+  steveVal.textContent = targetConfig.steveSpeed;
+  accelCheckbox.checked = targetConfig.dynamicAccel;
+  speedPresetButtons.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.preset === targetConfig.preset);
+  });
+  presetNameDisplay.textContent = targetConfig.preset.charAt(0).toUpperCase() + targetConfig.preset.slice(1);
+
+  volumeSlider.value = targetConfig.volume;
+  volumeVal.textContent = `${targetConfig.volume}%`;
+  bgmCheckbox.checked = targetConfig.bgmEnabled;
+  sfxCheckbox.checked = targetConfig.sfxEnabled;
+  vibeCheckbox.checked = targetConfig.vibration;
+}
+
+configBtn.addEventListener('click', () => {
+  if (config.parentLockEnabled) {
+    openPinModal('open_config');
+  } else {
+    showConfigDialogDirectly();
+  }
+});
+
+function showConfigDialogDirectly() {
+  soundEngine.resume();
+  wasPausedBeforeDialog = isPaused;
+  if (!isPaused && !gameOver && !isLocked) {
+    isPaused = true;
+    soundEngine.stopBgm();
+    updatePauseButton();
+    draw();
+  }
+  syncDialogUIWithConfig(config);
+  configDialog.showModal();
+}
+
+function closeConfigDialog() {
+  configDialog.close();
+  if (!wasPausedBeforeDialog && !gameOver && !isLocked) {
+    isPaused = false;
+    lastTickTimestamp = Date.now();
+    updatePauseButton();
+    if (config.soundEnabled && config.bgmEnabled) {
+      soundEngine.startBgm();
+    }
+    loop();
+  }
+}
+
+pauseBtn.addEventListener('click', togglePause);
+soundToggleBtn.addEventListener('click', toggleSound);
+dialogCloseX.addEventListener('click', closeConfigDialog);
+
+// Change PIN requires verifying current PIN first
+changePinBtn.addEventListener('click', () => {
+  openPinModal('change_pin_auth');
+});
+
+// Timer dialog events
+timerEnabledCheckbox.addEventListener('change', (e) => {
+  timerOptionsContainer.style.opacity = e.target.checked ? '1' : '0.4';
+});
+
+timerSlider.addEventListener('input', (e) => {
+  const mins = parseInt(e.target.value, 10);
+  timerVal.textContent = `${mins} min`;
+  timerPresetButtons.forEach(b => {
+    b.classList.toggle('active', Number(b.dataset.minutes) === mins);
+  });
+});
+
+timerPresetButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mins = parseInt(btn.dataset.minutes, 10);
+    timerSlider.value = mins;
+    timerVal.textContent = `${mins} min`;
+    timerPresetButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+testVibeBtn.addEventListener('click', () => {
+  soundEngine.resume();
+  triggerCreeperImpact();
+});
+
+speedPresetButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const presetKey = btn.dataset.preset;
+    if (PRESETS[presetKey]) {
+      const p = PRESETS[presetKey];
+      fallSlider.value = p.fallSpeedMultiplier;
+      fallVal.textContent = `${p.fallSpeedMultiplier.toFixed(1)}x`;
+      steveSlider.value = p.steveSpeed;
+      steveVal.textContent = p.steveSpeed;
+      accelCheckbox.checked = p.dynamicAccel;
+
+      speedPresetButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      presetNameDisplay.textContent = p.name;
+    }
+  });
+});
+
+fallSlider.addEventListener('input', (e) => {
+  fallVal.textContent = `${Number(e.target.value).toFixed(1)}x`;
+  markCustomSpeedPreset();
+});
+
+steveSlider.addEventListener('input', (e) => {
+  steveVal.textContent = e.target.value;
+  markCustomSpeedPreset();
+});
+
+accelCheckbox.addEventListener('change', () => {
+  markCustomSpeedPreset();
+});
+
+volumeSlider.addEventListener('input', (e) => {
+  volumeVal.textContent = `${e.target.value}%`;
+});
+
+function markCustomSpeedPreset() {
+  speedPresetButtons.forEach(btn => btn.classList.remove('active'));
+  presetNameDisplay.textContent = 'Custom';
+}
+
+function getActiveSpeedPreset() {
+  const activeBtn = document.querySelector('.speed-preset-btn.active');
+  return activeBtn ? activeBtn.dataset.preset : 'custom';
+}
+
+saveConfigBtn.addEventListener('click', () => {
+  const newConfig = {
+    parentLockEnabled: parentLockCheckbox.checked,
+    timerEnabled: timerEnabledCheckbox.checked,
+    timerMinutes: parseInt(timerSlider.value, 10),
+    preset: getActiveSpeedPreset(),
+    fallSpeedMultiplier: parseFloat(fallSlider.value),
+    steveSpeed: parseInt(steveSlider.value, 10),
+    dynamicAccel: accelCheckbox.checked,
+    volume: parseInt(volumeSlider.value, 10),
+    bgmEnabled: bgmCheckbox.checked,
+    sfxEnabled: sfxCheckbox.checked,
+    vibration: vibeCheckbox.checked
+  };
+  saveConfig(newConfig);
+  closeConfigDialog();
+});
+
+resetConfigBtn.addEventListener('click', () => {
+  const defaultNormal = PRESETS.normal;
+  syncDialogUIWithConfig({
+    parentLockEnabled: true,
+    timerEnabled: true,
+    timerMinutes: 15,
+    preset: 'normal',
+    fallSpeedMultiplier: defaultNormal.fallSpeedMultiplier,
+    steveSpeed: defaultNormal.steveSpeed,
+    dynamicAccel: defaultNormal.dynamicAccel,
+    soundEnabled: true,
+    bgmEnabled: true,
+    sfxEnabled: true,
+    vibration: true,
+    volume: 80
+  });
+});
+
+configDialog.addEventListener('click', (e) => {
+  const rect = configDialog.getBoundingClientRect();
+  const isInDialog = (
+    rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+    rect.left <= e.clientX && e.clientX <= rect.left + rect.width
+  );
+  if (!isInDialog) {
+    closeConfigDialog();
+  }
+});
+
+// PWA Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => {
+      console.log('ServiceWorker notice:', err);
+    });
+  });
+}
+
+// Initial start
+applyConfig();
+loop();
+</script>
+</body>
+</html>
