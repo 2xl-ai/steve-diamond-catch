@@ -11,7 +11,14 @@ A retro arcade game featuring customizable speeds, session timer with cryptograp
 ---
 
 ## 🎮 Features
-- **Arcade Gameplay**: Catch falling Diamonds (+1) and Golden Apples (+5) while dodging Creepers (-1 Life).
+- **🌟 Progressive Level System**:
+  - **Level 1 (Peaceful Meadow)**: Pure diamond and golden apple collecting with **0% hostile mobs** — ideal for young children learning the game!
+  - **Level 2 (Creeper Alert)**: Introduces Creepers that explode on contact (-1 heart, red flash, screen shake, haptic vibration).
+  - **Level 3 (The Dark Forest)**: Introduces tall **Endermen** with glowing purple eyes that can teleport horizontally mid-fall with warp sound effects!
+  - **Level 4 (Skeleton Barrage)**: Introduces fast-falling **Skeleton Arrows** dropping at 1.55x speed to test reflexes.
+  - **Level 5+ (Ender Dragon Realm)**: Cosmic starry void storm with high-speed mob spawns and **2x Diamond Points**!
+  - Animated on-screen "LEVEL UP!" celebratory banners and triumphant 8-bit fanfares.
+  - Option to set **Starting Level** (Level 1–5) in settings.
 - **⚙️ Speed & Difficulty Configuration**: Built-in settings modal with presets (*Slow*, *Normal*, *Fast*, *Insane*), custom falling item speed slider, and Steve movement speed slider.
 - **🔒 Parental Screen Time Lock**:
   - Automatically locks the game when the session timer (default: 15 min) expires.

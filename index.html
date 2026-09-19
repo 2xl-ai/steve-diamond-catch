@@ -537,8 +537,9 @@
     <canvas id="gameCanvas" width="600" height="500"></canvas>
   </div>
 
-  <!-- Status Bar showing current speed, timer & sound -->
+  <!-- Status Bar showing current level, speed, timer & sound -->
   <div class="status-bar">
+    <span>Level: <strong id="level-display" class="status-badge" style="background: #2e7d32; color: #fff;">LVL 1 - Meadow</strong></span>
     <span>Speed: <strong id="speed-display" class="status-badge">1.0x (NORMAL)</strong></span>
     <span>Timer: <strong id="timer-display" class="status-badge">15:00</strong></span>
     <span>Sound: <strong id="sound-status-display" class="status-badge">ON</strong></span>
@@ -635,6 +636,22 @@
         <input type="checkbox" id="dynamic-accel-checkbox" checked>
         <span>Gradual acceleration (speed increases with score)</span>
       </label>
+
+      <!-- Starting Level Selector -->
+      <div class="config-label" style="margin-top: 12px;">
+        <span>Starting Level:</span>
+        <span id="start-level-name-display" class="config-val">Level 1 (Peaceful Meadow)</span>
+      </div>
+      <div class="presets-row" id="start-level-presets-row" style="grid-template-columns: repeat(5, 1fr);">
+        <button type="button" class="preset-btn start-level-btn active" data-level="1">Lvl 1</button>
+        <button type="button" class="preset-btn start-level-btn" data-level="2">Lvl 2</button>
+        <button type="button" class="preset-btn start-level-btn" data-level="3">Lvl 3</button>
+        <button type="button" class="preset-btn start-level-btn" data-level="4">Lvl 4</button>
+        <button type="button" class="preset-btn start-level-btn" data-level="5">Lvl 5</button>
+      </div>
+      <div style="font-size: 11px; color: #aaa; margin-top: 4px;">
+        🌿 Lvl 1: Peaceful Meadow | 💣 Lvl 2: Creepers | 👁️ Lvl 3: Endermen | 🏹 Lvl 4: Arrows | 🐉 Lvl 5: Void Storm (2x Pts)
+      </div>
     </div>
 
     <!-- Audio & Haptics Section -->
@@ -654,12 +671,12 @@
 
       <label class="checkbox-row">
         <input type="checkbox" id="sfx-checkbox" checked>
-        <span>💥 Sound Effects (Diamonds, Apples, TNT)</span>
+        <span>💥 Sound Effects (Diamonds, Apples, TNT, Mobs)</span>
       </label>
 
       <label class="checkbox-row">
         <input type="checkbox" id="vibration-checkbox" checked>
-        <span>📳 Phone Vibration (Haptic pulse on Creeper hit)</span>
+        <span>📳 Phone Vibration Feedback</span>
       </label>
 
       <div style="margin-top: 10px; display: flex; gap: 8px;">
@@ -706,6 +723,9 @@
       <button type="button" class="keypad-btn keypad-btn-clear" data-key="clear">CLEAR</button>
       <button type="button" class="keypad-btn" data-key="0">0</button>
       <button type="button" class="keypad-btn" data-key="backspace">⌫</button>
+    </div>
+    <div style="margin-top: 10px; text-align: center; font-size: 11px; color: #888;">
+      💡 Default PIN: <strong style="color: #4dedf4;">1234</strong> (Type on keyboard or tap buttons)
     </div>
   </dialog>
 
@@ -829,6 +849,84 @@ const PRESETS = {
   insane: { name: 'Insane', fallSpeedMultiplier: 1.8, steveSpeed: 11, dynamicAccel: false }
 };
 
+// --- Progressive Level Definitions ---
+const LEVELS = [
+  {
+    level: 1,
+    name: 'Peaceful Meadow',
+    minScore: 0,
+    skyColor: '#78c6ff',
+    groundGrass: '#569b32',
+    description: 'Catch diamonds & golden apples. Zero enemies!',
+    diamondWeight: 0.82,
+    bonusWeight: 0.18,
+    creeperWeight: 0,
+    endermanWeight: 0,
+    arrowWeight: 0,
+    speedFactor: 1.0
+  },
+  {
+    level: 2,
+    name: 'Creeper Alert',
+    minScore: 10,
+    skyColor: '#5aa8e8',
+    groundGrass: '#4a8e2b',
+    description: 'Watch out! Creepers have appeared!',
+    diamondWeight: 0.70,
+    bonusWeight: 0.12,
+    creeperWeight: 0.18,
+    endermanWeight: 0,
+    arrowWeight: 0,
+    speedFactor: 1.08
+  },
+  {
+    level: 3,
+    name: 'The Dark Forest',
+    minScore: 25,
+    skyColor: '#3d3060',
+    groundGrass: '#2b5220',
+    description: 'Teleporting Endermen lurking with glowing purple eyes!',
+    diamondWeight: 0.58,
+    bonusWeight: 0.12,
+    creeperWeight: 0.15,
+    endermanWeight: 0.15,
+    arrowWeight: 0,
+    speedFactor: 1.18
+  },
+  {
+    level: 4,
+    name: 'Skeleton Barrage',
+    minScore: 50,
+    skyColor: '#4a1515',
+    groundGrass: '#3a2020',
+    description: 'Fast-falling arrows raining from above!',
+    diamondWeight: 0.48,
+    bonusWeight: 0.12,
+    creeperWeight: 0.14,
+    endermanWeight: 0.13,
+    arrowWeight: 0.13,
+    speedFactor: 1.28
+  },
+  {
+    level: 5,
+    name: 'Ender Dragon Realm',
+    minScore: 80,
+    skyColor: '#160e29',
+    groundGrass: '#241b35',
+    description: 'The Final Dimension! Mobs galore & 2x diamond points!',
+    diamondWeight: 0.45,
+    bonusWeight: 0.10,
+    creeperWeight: 0.15,
+    endermanWeight: 0.15,
+    arrowWeight: 0.15,
+    speedFactor: 1.40
+  }
+];
+
+function getLevelData(lvl) {
+  return LEVELS.find(l => l.level === lvl) || LEVELS[0];
+}
+
 let config = loadConfig();
 
 function loadConfig() {
@@ -848,7 +946,8 @@ function loadConfig() {
         volume: Number(parsed.volume) !== undefined ? Number(parsed.volume) : 80,
         timerEnabled: parsed.timerEnabled !== false,
         timerMinutes: Number(parsed.timerMinutes) || 15,
-        parentLockEnabled: parsed.parentLockEnabled !== false
+        parentLockEnabled: parsed.parentLockEnabled !== false,
+        startLevel: Number(parsed.startLevel) || 1
       };
     }
   } catch (e) {
@@ -866,7 +965,8 @@ function loadConfig() {
     volume: 80,
     timerEnabled: true,
     timerMinutes: 15,
-    parentLockEnabled: true
+    parentLockEnabled: true,
+    startLevel: 1
   };
 }
 
@@ -932,25 +1032,27 @@ function updateLockoutUI() {
 
   if (isKeypadLockedOut()) {
     const remainingSec = Math.ceil((lockoutUntil - Date.now()) / 1000);
-    pinErrorMsg.textContent = `⏳ Locked for ${remainingSec}s due to wrong attempts.`;
+    pinErrorMsg.textContent = `⏳ Too many failed attempts. Locked for ${remainingSec}s`;
     keypadButtons.forEach(btn => btn.disabled = true);
 
-    if (lockoutTimerId) clearInterval(lockoutTimerId);
-    lockoutTimerId = setInterval(() => {
-      if (!isKeypadLockedOut()) {
-        clearInterval(lockoutTimerId);
-        lockoutTimerId = null;
-        updateLockoutUI();
-      } else {
-        const sec = Math.ceil((lockoutUntil - Date.now()) / 1000);
-        pinErrorMsg.textContent = `⏳ Locked for ${sec}s due to wrong attempts.`;
-      }
-    }, 1000);
-  } else {
-    keypadButtons.forEach(btn => btn.disabled = false);
-    if (!pinBuffer) {
-      pinErrorMsg.textContent = '';
+    if (!lockoutTimerId) {
+      lockoutTimerId = setInterval(() => {
+        if (!isKeypadLockedOut()) {
+          clearInterval(lockoutTimerId);
+          lockoutTimerId = null;
+          updateLockoutUI();
+        } else {
+          const sec = Math.ceil((lockoutUntil - Date.now()) / 1000);
+          pinErrorMsg.textContent = `⏳ Too many failed attempts. Locked for ${sec}s`;
+        }
+      }, 1000);
     }
+  } else {
+    if (lockoutTimerId) {
+      clearInterval(lockoutTimerId);
+      lockoutTimerId = null;
+    }
+    keypadButtons.forEach(btn => btn.disabled = false);
   }
 }
 
@@ -968,26 +1070,33 @@ class RetroSoundEngine {
 
   init() {
     if (this.ctx) return;
-    const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtxClass) return;
-    this.ctx = new AudioCtxClass();
+    try {
+      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtxClass) return;
+      this.ctx = new AudioCtxClass();
 
-    this.masterGain = this.ctx.createGain();
-    this.masterGain.connect(this.ctx.destination);
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.connect(this.ctx.destination);
 
-    this.sfxGain = this.ctx.createGain();
-    this.sfxGain.connect(this.masterGain);
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.connect(this.masterGain);
 
-    this.bgmGain = this.ctx.createGain();
-    this.bgmGain.connect(this.masterGain);
+      this.bgmGain = this.ctx.createGain();
+      this.bgmGain.connect(this.masterGain);
 
-    this.updateGains();
+      this.updateGains();
+    } catch (e) {
+      console.warn('AudioContext init error:', e);
+      this.ctx = null;
+    }
   }
 
   resume() {
     this.init();
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      try {
+        this.ctx.resume();
+      } catch (e) {}
     }
   }
 
@@ -1002,6 +1111,7 @@ class RetroSoundEngine {
   playDiamond() {
     if (!config.soundEnabled || !config.sfxEnabled) return;
     this.resume();
+    if (!this.ctx) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -1022,6 +1132,7 @@ class RetroSoundEngine {
   playBonus() {
     if (!config.soundEnabled || !config.sfxEnabled) return;
     this.resume();
+    if (!this.ctx) return;
     const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
     notes.forEach((freq, idx) => {
       const now = this.ctx.currentTime + idx * 0.045;
@@ -1044,6 +1155,7 @@ class RetroSoundEngine {
   playExplosion() {
     if (!config.soundEnabled || !config.sfxEnabled) return;
     this.resume();
+    if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
     const bufferSize = Math.floor(this.ctx.sampleRate * 0.38);
@@ -1088,6 +1200,7 @@ class RetroSoundEngine {
   playGameOver() {
     if (!config.soundEnabled || !config.sfxEnabled) return;
     this.resume();
+    if (!this.ctx) return;
     const notes = [392.00, 349.23, 311.13, 261.63];
     notes.forEach((freq, idx) => {
       const now = this.ctx.currentTime + idx * 0.18;
@@ -1110,6 +1223,7 @@ class RetroSoundEngine {
   playLockSound() {
     if (!config.soundEnabled || !config.sfxEnabled) return;
     this.resume();
+    if (!this.ctx) return;
     const notes = [440.00, 370.00, 311.13, 220.00];
     notes.forEach((freq, idx) => {
       const now = this.ctx.currentTime + idx * 0.15;
@@ -1129,6 +1243,7 @@ class RetroSoundEngine {
   playUnlockSuccess() {
     if (!config.soundEnabled || !config.sfxEnabled) return;
     this.resume();
+    if (!this.ctx) return;
     const notes = [523.25, 659.25, 783.99, 1046.50];
     notes.forEach((freq, idx) => {
       const now = this.ctx.currentTime + idx * 0.1;
@@ -1143,6 +1258,80 @@ class RetroSoundEngine {
       osc.start(now);
       osc.stop(now + 0.18);
     });
+  }
+
+  playLevelUp() {
+    if (!config.soundEnabled || !config.sfxEnabled) return;
+    this.resume();
+    if (!this.ctx) return;
+    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+    notes.forEach((freq, idx) => {
+      const now = this.ctx.currentTime + idx * 0.07;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.28, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    });
+  }
+
+  playEndermanWarp() {
+    if (!config.soundEnabled || !config.sfxEnabled) return;
+    this.resume();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(750, now);
+    osc.frequency.exponentialRampToValueAtTime(160, now + 0.25);
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.25);
+  }
+
+  playArrowWhistle() {
+    if (!config.soundEnabled || !config.sfxEnabled) return;
+    this.resume();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1400, now);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.15);
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+
+  playArrowHit() {
+    if (!config.soundEnabled || !config.sfxEnabled) return;
+    this.resume();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(60, now + 0.14);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.14);
   }
 
   startBgm() {
@@ -1216,21 +1405,79 @@ class RetroSoundEngine {
 
 const soundEngine = new RetroSoundEngine();
 
-// --- Vibration Feedback ---
+// --- Vibration, Particles & Visual Feedback ---
 let screenShakeTimer = 0;
-let creeperFlashTimer = 0;
+let damageFlashTimer = 0;
+let damageFlashColor = 'rgba(255, 30, 30, 0.4)';
+let particles = [];
+let levelBanner = null;
+
+function spawnSparkleParticles(x, y, color) {
+  for (let i = 0; i < 6; i++) {
+    particles.push({
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 4,
+      vy: (Math.random() - 0.5) * 4,
+      color: color,
+      size: 2.5,
+      life: 20
+    });
+  }
+}
+
+function spawnWarpParticles(x, y) {
+  for (let i = 0; i < 10; i++) {
+    particles.push({
+      x: x + (Math.random() - 0.5) * 20,
+      y: y + (Math.random() - 0.5) * 25,
+      vx: (Math.random() - 0.5) * 3,
+      vy: (Math.random() - 0.5) * 3,
+      color: Math.random() < 0.5 ? '#b026ff' : '#e040fb',
+      size: 3,
+      life: 25
+    });
+  }
+}
 
 function triggerCreeperImpact() {
   soundEngine.playExplosion();
+  damageFlashColor = 'rgba(255, 30, 30, 0.4)';
+  damageFlashTimer = 7;
+  screenShakeTimer = 16;
 
   if (config.vibration && 'vibrate' in navigator) {
     try {
       navigator.vibrate([140, 60, 260]);
     } catch (err) {}
   }
+}
 
-  screenShakeTimer = 16;
-  creeperFlashTimer = 6;
+function triggerEndermanImpact(x, y) {
+  soundEngine.playEndermanWarp();
+  damageFlashColor = 'rgba(176, 38, 255, 0.45)';
+  damageFlashTimer = 8;
+  screenShakeTimer = 14;
+  spawnWarpParticles(x, y);
+
+  if (config.vibration && 'vibrate' in navigator) {
+    try {
+      navigator.vibrate([100, 50, 100, 50, 150]);
+    } catch (err) {}
+  }
+}
+
+function triggerArrowImpact() {
+  soundEngine.playArrowHit();
+  damageFlashColor = 'rgba(255, 60, 60, 0.4)';
+  damageFlashTimer = 6;
+  screenShakeTimer = 12;
+
+  if (config.vibration && 'vibrate' in navigator) {
+    try {
+      navigator.vibrate([120, 40, 160]);
+    } catch (err) {}
+  }
 }
 
 function formatTime(seconds) {
@@ -1317,6 +1564,7 @@ let lives = 3;
 let gameOver = false;
 let isPaused = false;
 let speedMultiplier = config.fallSpeedMultiplier;
+let currentLevel = config.startLevel || 1;
 
 // Player (Steve)
 const steve = {
@@ -1341,12 +1589,23 @@ function applyConfig() {
   soundEngine.updateGains();
   updateSpeedStatusDisplay();
   updateSoundStatusDisplay();
+  updateLevelStatusDisplay();
   updateLockUI();
 
   if (config.soundEnabled && config.bgmEnabled && !isPaused && !gameOver && !isLocked) {
     soundEngine.startBgm();
   } else {
     soundEngine.stopBgm();
+  }
+}
+
+function updateLevelStatusDisplay() {
+  const display = document.getElementById('level-display');
+  if (display) {
+    const lvl = getLevelData(currentLevel);
+    display.textContent = `LVL ${currentLevel} - ${lvl.name.split(' ')[0]}`;
+    const colors = ['#2e7d32', '#e65100', '#6a1b9a', '#c62828', '#311b92'];
+    display.style.backgroundColor = colors[(currentLevel - 1) % colors.length];
   }
 }
 
@@ -1396,6 +1655,9 @@ function restartGame() {
   score = 0;
   lives = 3;
   items = [];
+  particles = [];
+  levelBanner = null;
+  currentLevel = config.startLevel || 1;
   speedMultiplier = config.fallSpeedMultiplier;
   steve.x = canvas.width / 2 - steve.width / 2;
   steve.movingLeft = false;
@@ -1403,11 +1665,12 @@ function restartGame() {
   gameOver = false;
   isPaused = false;
   screenShakeTimer = 0;
-  creeperFlashTimer = 0;
+  damageFlashTimer = 0;
 
   lastTickTimestamp = Date.now();
   updatePauseButton();
   updateTimerStatusDisplay();
+  updateLevelStatusDisplay();
   soundEngine.startBgm();
   loop();
 }
@@ -1577,29 +1840,57 @@ canvas.addEventListener('click', (e) => {
   }
 });
 
-// --- Spawn random items ---
+// --- Spawn Progressive Level Items ---
 function spawnItem() {
+  const currentLvlData = getLevelData(currentLevel);
   const rand = Math.random();
   let type = 'diamond';
   
-  if (rand < 0.25) {
-    type = 'creeper';
-  } else if (rand < 0.35) {
+  const wDiamond = currentLvlData.diamondWeight;
+  const wBonus = wDiamond + currentLvlData.bonusWeight;
+  const wCreeper = wBonus + currentLvlData.creeperWeight;
+  const wEnderman = wCreeper + currentLvlData.endermanWeight;
+
+  if (rand < wDiamond) {
+    type = 'diamond';
+  } else if (rand < wBonus) {
     type = 'bonus';
+  } else if (rand < wCreeper) {
+    type = 'creeper';
+  } else if (rand < wEnderman) {
+    type = 'enderman';
+  } else {
+    type = 'arrow';
+  }
+
+  let size = 28;
+  let speed = (2.4 + Math.random() * 2) * speedMultiplier * currentLvlData.speedFactor;
+  let hasTeleported = false;
+  let teleportAtY = 0;
+
+  if (type === 'enderman') {
+    size = 30;
+    teleportAtY = canvas.height * (0.32 + Math.random() * 0.28);
+  } else if (type === 'arrow') {
+    size = 32;
+    speed *= 1.55;
+    try { soundEngine.playArrowWhistle(); } catch (e) {}
   }
 
   items.push({
-    x: Math.random() * (canvas.width - 32),
+    x: Math.random() * (canvas.width - size),
     y: -35,
-    size: 28,
+    size: size,
     type: type,
-    speed: (2.5 + Math.random() * 2) * speedMultiplier
+    speed: speed,
+    hasTeleported: hasTeleported,
+    teleportAtY: teleportAtY
   });
 }
 
 // --- Draw Steve pixel-art style ---
 function drawSteve(x, y) {
-  // Head / Hair
+  // Hair
   ctx.fillStyle = '#4a2d12';
   ctx.fillRect(x + 6, y, 32, 12);
   // Face
@@ -1655,6 +1946,91 @@ function drawItem(item) {
     ctx.fillRect(item.x + 10, item.y + 12, 8, 8);
     ctx.fillRect(item.x + 8, item.y + 18, 4, 6);
     ctx.fillRect(item.x + 16, item.y + 18, 4, 6);
+  } else if (item.type === 'enderman') {
+    // Enderman Head & Eyes
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(item.x, item.y, item.size, item.size);
+    // Purple Eye Glow Aura
+    ctx.fillStyle = 'rgba(176, 38, 255, 0.4)';
+    ctx.fillRect(item.x + 2, item.y + 10, 10, 7);
+    ctx.fillRect(item.x + item.size - 12, item.y + 10, 10, 7);
+    // Magenta Eyes
+    ctx.fillStyle = '#e040fb';
+    ctx.fillRect(item.x + 4, item.y + 12, 6, 3);
+    ctx.fillRect(item.x + item.size - 10, item.y + 12, 6, 3);
+    // Bright white pupils
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(item.x + 6, item.y + 12, 2, 3);
+    ctx.fillRect(item.x + item.size - 8, item.y + 12, 2, 3);
+  } else if (item.type === 'arrow') {
+    // Skeleton Arrow
+    // Flint tip pointing down
+    ctx.fillStyle = '#9e9e9e';
+    ctx.beginPath();
+    ctx.moveTo(item.x + item.size / 2, item.y + item.size);
+    ctx.lineTo(item.x + item.size / 2 - 6, item.y + item.size - 12);
+    ctx.lineTo(item.x + item.size / 2 + 6, item.y + item.size - 12);
+    ctx.closePath();
+    ctx.fill();
+    // Wooden shaft
+    ctx.fillStyle = '#8d6e63';
+    ctx.fillRect(item.x + item.size / 2 - 2, item.y + 6, 4, item.size - 18);
+    // Feathers (fletching)
+    ctx.fillStyle = '#eceff1';
+    ctx.fillRect(item.x + item.size / 2 - 5, item.y, 10, 6);
+    ctx.fillStyle = '#b0bec5';
+    ctx.fillRect(item.x + item.size / 2 - 7, item.y + 2, 14, 2);
+  }
+}
+
+// --- Check Level Progression ---
+function checkLevelProgression() {
+  let targetLevel = config.startLevel || 1;
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    if (score >= LEVELS[i].minScore) {
+      targetLevel = Math.max(targetLevel, LEVELS[i].level);
+      break;
+    }
+  }
+
+  if (targetLevel > currentLevel) {
+    currentLevel = targetLevel;
+    const lvlData = getLevelData(currentLevel);
+    levelBanner = {
+      level: currentLevel,
+      name: lvlData.name,
+      timer: 130
+    };
+    try {
+      soundEngine.playLevelUp();
+    } catch (e) {}
+    // Spawn celebratory fireworks particles
+    for (let p = 0; p < 25; p++) {
+      particles.push({
+        x: canvas.width / 2,
+        y: 120,
+        vx: (Math.random() - 0.5) * 8,
+        vy: (Math.random() - 0.5) * 8 - 2,
+        color: ['#ffd700', '#4dedf4', '#ff5555', '#55ff55'][Math.floor(Math.random() * 4)],
+        size: 3 + Math.random() * 3,
+        life: 45
+      });
+    }
+    updateLevelStatusDisplay();
+  }
+}
+
+function handlePlayerHit() {
+  if (lives <= 0) {
+    gameOver = true;
+    soundEngine.stopBgm();
+    soundEngine.playGameOver();
+    if (score > highScore) {
+      highScore = score;
+      try {
+        localStorage.setItem('steve_highscore', highScore);
+      } catch (e) {}
+    }
   }
 }
 
@@ -1695,15 +2071,37 @@ function update() {
   }
 
   spawnCounter++;
-  if (spawnCounter > Math.max(25, 60 - score)) {
+  if (spawnCounter > Math.max(22, 55 - score)) {
     spawnItem();
     spawnCounter = 0;
+  }
+
+  // Update Particles
+  for (let p = particles.length - 1; p >= 0; p--) {
+    const pt = particles[p];
+    pt.x += pt.vx;
+    pt.y += pt.vy;
+    pt.life--;
+    if (pt.life <= 0) {
+      particles.splice(p, 1);
+    }
   }
 
   for (let i = items.length - 1; i >= 0; i--) {
     let item = items[i];
     item.y += item.speed;
 
+    // Enderman Teleportation Logic
+    if (item.type === 'enderman' && !item.hasTeleported && item.y >= item.teleportAtY) {
+      item.hasTeleported = true;
+      spawnWarpParticles(item.x + item.size / 2, item.y + item.size / 2);
+      const shift = (Math.random() < 0.5 ? -1 : 1) * (70 + Math.random() * 110);
+      item.x = Math.max(10, Math.min(canvas.width - item.size - 10, item.x + shift));
+      spawnWarpParticles(item.x + item.size / 2, item.y + item.size / 2);
+      try { soundEngine.playEndermanWarp(); } catch (e) {}
+    }
+
+    // Collision Detection with Steve
     if (
       item.x < steve.x + steve.width &&
       item.x + item.size > steve.x &&
@@ -1711,25 +2109,28 @@ function update() {
       item.y + item.size > steve.y
     ) {
       if (item.type === 'diamond') {
-        score += 1;
+        const pts = currentLevel >= 5 ? 2 : 1;
+        score += pts;
         soundEngine.playDiamond();
+        spawnSparkleParticles(item.x + item.size / 2, item.y + item.size / 2, '#4dedf4');
+        checkLevelProgression();
       } else if (item.type === 'bonus') {
         score += 5;
         soundEngine.playBonus();
+        spawnSparkleParticles(item.x + item.size / 2, item.y + item.size / 2, '#ffd700');
+        checkLevelProgression();
       } else if (item.type === 'creeper') {
         lives -= 1;
         triggerCreeperImpact();
-        if (lives <= 0) {
-          gameOver = true;
-          soundEngine.stopBgm();
-          soundEngine.playGameOver();
-          if (score > highScore) {
-            highScore = score;
-            try {
-              localStorage.setItem('steve_highscore', highScore);
-            } catch (e) {}
-          }
-        }
+        handlePlayerHit();
+      } else if (item.type === 'enderman') {
+        lives -= 1;
+        triggerEndermanImpact(item.x, item.y);
+        handlePlayerHit();
+      } else if (item.type === 'arrow') {
+        lives -= 1;
+        triggerArrowImpact();
+        handlePlayerHit();
       }
       items.splice(i, 1);
       continue;
@@ -1755,23 +2156,42 @@ function draw() {
     ctx.translate(offsetX, offsetY);
   }
 
-  // Sky
-  ctx.fillStyle = '#78c6ff';
+  const curLvl = getLevelData(currentLevel);
+
+  // Dynamic Sky based on Level
+  ctx.fillStyle = curLvl.skyColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Ground
-  ctx.fillStyle = '#569b32';
+  // Level 5 Void Realm Floating Stars
+  if (currentLevel >= 5) {
+    ctx.fillStyle = '#ffffff';
+    for (let s = 0; s < 25; s++) {
+      const sx = ((s * 47 + Date.now() * 0.012) % canvas.width);
+      const sy = (s * 19) % (canvas.height - 40);
+      ctx.fillRect(sx, sy, 2, 2);
+    }
+  }
+
+  // Dynamic Ground
+  ctx.fillStyle = curLvl.groundGrass;
   ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
-  ctx.fillStyle = '#7a5229';
+  ctx.fillStyle = '#4a2d12';
   ctx.fillRect(0, canvas.height - 14, canvas.width, 14);
+
+  // Draw Particles
+  particles.forEach(pt => {
+    ctx.fillStyle = pt.color;
+    ctx.fillRect(pt.x, pt.y, pt.size, pt.size);
+  });
 
   // Steve & Items
   drawSteve(steve.x, steve.y);
   items.forEach(drawItem);
 
-  if (creeperFlashTimer > 0) {
-    creeperFlashTimer--;
-    ctx.fillStyle = 'rgba(255, 30, 30, 0.4)';
+  // Damage Flash Overlay
+  if (damageFlashTimer > 0) {
+    damageFlashTimer--;
+    ctx.fillStyle = damageFlashColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
@@ -1783,6 +2203,17 @@ function draw() {
     ctx.lineWidth = 2;
     ctx.strokeRect(20 + i * 26, 20, 20, 20);
   }
+
+  // HUD: Level Badge
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.fillRect(105, 18, 140, 24);
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(105, 18, 140, 24);
+
+  ctx.fillStyle = '#ffd700';
+  ctx.font = 'bold 11px "Courier New", monospace';
+  ctx.fillText(`LVL ${currentLevel}: ${curLvl.name.toUpperCase()}`, 110, 34);
 
   // HUD: Timer
   if (config.timerEnabled && !isLocked) {
@@ -1799,14 +2230,50 @@ function draw() {
     ctx.fillText(`⏱ ${formatTime(timeRemainingSeconds)}`, canvas.width / 2, 36);
   }
 
-  // HUD: Score & High Score
+  // HUD: Score, High Score & Next Level Target
   ctx.fillStyle = '#000000';
   ctx.font = 'bold 20px "Courier New", monospace';
   ctx.textAlign = 'right';
   ctx.fillText(`Score: ${score}`, canvas.width - 20, 36);
-  ctx.font = '14px "Courier New", monospace';
-  ctx.fillText(`Best: ${highScore}`, canvas.width - 20, 56);
+  ctx.font = '13px "Courier New", monospace';
+  ctx.fillText(`Best: ${highScore}`, canvas.width - 20, 54);
+
+  const nextLvl = LEVELS.find(l => l.level === currentLevel + 1);
+  if (nextLvl) {
+    ctx.fillStyle = '#222222';
+    ctx.font = '11px "Courier New", monospace';
+    ctx.fillText(`Next Lvl: ${nextLvl.minScore} pts`, canvas.width - 20, 70);
+  } else {
+    ctx.fillStyle = '#d81b60';
+    ctx.font = 'bold 11px "Courier New", monospace';
+    ctx.fillText(`MAX LEVEL (2x PTS)`, canvas.width - 20, 70);
+  }
   ctx.textAlign = 'left';
+
+  // Celebratory Level Up Banner
+  if (levelBanner && levelBanner.timer > 0) {
+    levelBanner.timer--;
+    ctx.save();
+    const bw = 360;
+    const bh = 64;
+    const bx = canvas.width / 2 - bw / 2;
+    const by = 80;
+    ctx.fillStyle = 'rgba(15, 15, 30, 0.94)';
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(bx, by, bw, bh);
+
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 20px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`🌟 LEVEL UP! LEVEL ${levelBanner.level} 🌟`, canvas.width / 2, by + 26);
+
+    ctx.fillStyle = '#4dedf4';
+    ctx.font = 'bold 13px "Courier New", monospace';
+    ctx.fillText(levelBanner.name.toUpperCase(), canvas.width / 2, by + 48);
+    ctx.restore();
+  }
 
   // Pause Overlay
   if (isPaused && !gameOver && !isLocked) {
@@ -2014,10 +2481,19 @@ document.querySelectorAll('.keypad-btn').forEach(btn => {
 
 window.addEventListener('keydown', (e) => {
   if (!pinDialog.open || isKeypadLockedOut()) return;
+
+  let digit = null;
   if (e.key >= '0' && e.key <= '9') {
+    digit = e.key;
+  } else if (e.code && e.code.startsWith('Numpad') && e.code.length === 7) {
+    const char = e.code.slice(6);
+    if (char >= '0' && char <= '9') digit = char;
+  }
+
+  if (digit !== null) {
     e.preventDefault();
     if (pinBuffer.length < 4) {
-      pinBuffer += e.key;
+      pinBuffer += digit;
       updatePinDots();
       if (pinBuffer.length === 4) {
         setTimeout(submitPin, 80);
@@ -2043,7 +2519,7 @@ function submitPin() {
   // Step A: Setting a new PIN
   if (pinTargetAction === 'set_new_pin') {
     setParentPin(pinBuffer);
-    soundEngine.playUnlockSuccess();
+    try { soundEngine.playUnlockSuccess(); } catch (e) {}
     closePinDialog();
     alert('✅ Parent PIN successfully updated!');
     return;
@@ -2062,7 +2538,7 @@ function submitPin() {
       localStorage.removeItem(LOCKOUT_UNTIL_KEY);
     } catch (e) {}
 
-    soundEngine.playUnlockSuccess();
+    try { soundEngine.playUnlockSuccess(); } catch (e) {}
     const action = pinTargetAction;
     closePinDialog();
 
@@ -2197,6 +2673,16 @@ function syncDialogUIWithConfig(targetConfig) {
   });
   presetNameDisplay.textContent = targetConfig.preset.charAt(0).toUpperCase() + targetConfig.preset.slice(1);
 
+  const startLvl = targetConfig.startLevel || 1;
+  const startLvlData = getLevelData(startLvl);
+  const startLvlDisplay = document.getElementById('start-level-name-display');
+  if (startLvlDisplay) {
+    startLvlDisplay.textContent = `Level ${startLvl} (${startLvlData.name})`;
+  }
+  document.querySelectorAll('.start-level-btn').forEach(btn => {
+    btn.classList.toggle('active', Number(btn.dataset.level) === startLvl);
+  });
+
   volumeSlider.value = targetConfig.volume;
   volumeVal.textContent = `${targetConfig.volume}%`;
   bgmCheckbox.checked = targetConfig.bgmEnabled;
@@ -2293,6 +2779,19 @@ speedPresetButtons.forEach(btn => {
   });
 });
 
+document.querySelectorAll('.start-level-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const lvl = Number(btn.dataset.level) || 1;
+    const lvlData = getLevelData(lvl);
+    const startLvlDisplay = document.getElementById('start-level-name-display');
+    if (startLvlDisplay) {
+      startLvlDisplay.textContent = `Level ${lvl} (${lvlData.name})`;
+    }
+    document.querySelectorAll('.start-level-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
 fallSlider.addEventListener('input', (e) => {
   fallVal.textContent = `${Number(e.target.value).toFixed(1)}x`;
   markCustomSpeedPreset();
@@ -2322,6 +2821,9 @@ function getActiveSpeedPreset() {
 }
 
 saveConfigBtn.addEventListener('click', () => {
+  const activeLvlBtn = document.querySelector('.start-level-btn.active');
+  const startLevel = activeLvlBtn ? (Number(activeLvlBtn.dataset.level) || 1) : 1;
+
   const newConfig = {
     parentLockEnabled: parentLockCheckbox.checked,
     timerEnabled: timerEnabledCheckbox.checked,
@@ -2330,6 +2832,7 @@ saveConfigBtn.addEventListener('click', () => {
     fallSpeedMultiplier: parseFloat(fallSlider.value),
     steveSpeed: parseInt(steveSlider.value, 10),
     dynamicAccel: accelCheckbox.checked,
+    startLevel: startLevel,
     volume: parseInt(volumeSlider.value, 10),
     bgmEnabled: bgmCheckbox.checked,
     sfxEnabled: sfxCheckbox.checked,
@@ -2349,6 +2852,7 @@ resetConfigBtn.addEventListener('click', () => {
     fallSpeedMultiplier: defaultNormal.fallSpeedMultiplier,
     steveSpeed: defaultNormal.steveSpeed,
     dynamicAccel: defaultNormal.dynamicAccel,
+    startLevel: 1,
     soundEnabled: true,
     bgmEnabled: true,
     sfxEnabled: true,
